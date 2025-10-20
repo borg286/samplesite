@@ -1,5 +1,5 @@
 // Configuration for self-hosted JavaScript modules
-const NGINX_BASE_URL = 'https://your-nginx-server.com'; // Update this to your nginx server URL
+const NGINX_BASE_URL = 'https://borg286.github.io/samplesite'; // Update this to your nginx server URL
 
 // Lazy loading utility
 class ModuleLoader {
