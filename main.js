@@ -1,142 +1,113 @@
-// Configuration for self-hosted JavaScript modules
-const NGINX_BASE_URL = 'https://borg286.github.io/samplesite'; // Update this to your nginx server URL
+// Configuration
+const NGINX_BASE_URL = 'https://borg286.github.io/samplesite';
 
-// Lazy loading utility
+// Utilities
+const createSection = (title, content = '') => `
+    <h2 class="section-title">${title}</h2>
+    <div id="${title.toLowerCase().replace(/\s+/g, '')}Content">${content}</div>
+`;
+
+const spinner = '<div class="text-center"><div class="spinner-border text-primary"><span class="visually-hidden">Loading...</span></div></div>';
+const errorMsg = (type) => `<div class="alert alert-danger">Failed to load ${type} information.</div>`;
+
+// Module Loader
 class ModuleLoader {
     constructor() {
-        this.loadedModules = new Set();
-        this.loadingPromises = new Map();
+        this.loaded = new Set();
+        this.loading = new Map();
     }
 
-    async loadModule(moduleName) {
-        if (this.loadedModules.has(moduleName)) {
-            return Promise.resolve();
-        }
+    async load(name) {
+        if (this.loaded.has(name)) return Promise.resolve();
+        if (this.loading.has(name)) return this.loading.get(name);
 
-        if (this.loadingPromises.has(moduleName)) {
-            return this.loadingPromises.get(moduleName);
-        }
-
-        const loadPromise = new Promise((resolve, reject) => {
+        const promise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = `${NGINX_BASE_URL}/${moduleName}.js`;
+            script.src = `${NGINX_BASE_URL}/${name}.js`;
             script.async = true;
-            
             script.onload = () => {
-                this.loadedModules.add(moduleName);
-                this.loadingPromises.delete(moduleName);
+                this.loaded.add(name);
+                this.loading.delete(name);
                 resolve();
             };
-            
             script.onerror = () => {
-                this.loadingPromises.delete(moduleName);
-                reject(new Error(`Failed to load module: ${moduleName}`));
+                this.loading.delete(name);
+                reject(new Error(`Failed to load: ${name}`));
             };
-            
             document.head.appendChild(script);
         });
 
-        this.loadingPromises.set(moduleName, loadPromise);
-        return loadPromise;
+        this.loading.set(name, promise);
+        return promise;
     }
 }
 
-const moduleLoader = new ModuleLoader();
+const loader = new ModuleLoader();
 
-// Intersection Observer for lazy loading sections
-const observerOptions = {
-    root: null,
-    rootMargin: '100px',
-    threshold: 0.1
+// Section Loaders
+const sections = {
+    pricing: {
+        title: 'Pricing',
+        init: 'initPricing',
+        module: 'pricing'
+    },
+    reviews: {
+        title: 'Customer Reviews',
+        init: 'initReviews',
+        module: 'reviews'
+    },
+    contact: {
+        title: 'Contact Us',
+        init: 'initContacts',
+        module: 'contacts',
+        subtitle: '<p class="text-center mb-4">Get in touch with us to learn more about our products</p>'
+    }
 };
 
-const sectionObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const section = entry.target;
-            const sectionId = section.id;
-            
-            switch(sectionId) {
-                case 'pricing':
-                    loadPricingSection();
-                    break;
-                case 'reviews':
-                    loadReviewsSection();
-                    break;
-                case 'contact':
-                    loadContactSection();
-                    break;
-            }
-            
-            sectionObserver.unobserve(section);
-        }
-    });
-}, observerOptions);
+async function loadSection(id) {
+    const section = sections[id];
+    const container = document.querySelector(`#${id} .container`);
+    
+    container.innerHTML = createSection(section.title, spinner);
+    if (section.subtitle) {
+        container.querySelector('.section-title').insertAdjacentHTML('afterend', section.subtitle);
+    }
 
-// Load pricing section
-async function loadPricingSection() {
     try {
-        await moduleLoader.loadModule('pricing');
-        if (typeof initPricing === 'function') {
-            initPricing();
+        await loader.load(section.module);
+        if (typeof window[section.init] === 'function') {
+            window[section.init]();
         }
     } catch (error) {
-        console.error('Error loading pricing module:', error);
-        document.getElementById('pricingContent').innerHTML = 
-            '<div class="alert alert-danger">Failed to load pricing information.</div>';
+        console.error(`Error loading ${id}:`, error);
+        document.getElementById(`${id.toLowerCase()}Content`).innerHTML = errorMsg(id);
     }
 }
 
-// Load reviews section
-async function loadReviewsSection() {
-    try {
-        await moduleLoader.loadModule('reviews');
-        if (typeof initReviews === 'function') {
-            initReviews();
-        }
-    } catch (error) {
-        console.error('Error loading reviews module:', error);
-        document.getElementById('reviewsContent').innerHTML = 
-            '<div class="alert alert-danger">Failed to load reviews.</div>';
-    }
-}
-
-// Load contact section
-async function loadContactSection() {
-    try {
-        await moduleLoader.loadModule('contacts');
-        if (typeof initContacts === 'function') {
-            initContacts();
-        }
-    } catch (error) {
-        console.error('Error loading contacts module:', error);
-        document.getElementById('contactContent').innerHTML = 
-            '<div class="alert alert-danger">Failed to load contact form.</div>';
-    }
-}
-
-// Initialize observers when DOM is ready
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    // Observe sections for lazy loading
-    const pricingSection = document.getElementById('pricing');
-    const reviewsSection = document.getElementById('reviews');
-    const contactSection = document.getElementById('contact');
-    
-    if (pricingSection) sectionObserver.observe(pricingSection);
-    if (reviewsSection) sectionObserver.observe(reviewsSection);
-    if (contactSection) sectionObserver.observe(contactSection);
-    
-    // Smooth scroll for navigation links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
+    // Intersection Observer
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                loadSection(entry.target.id);
+                observer.unobserve(entry.target);
             }
+        });
+    }, { root: null, rootMargin: '100px', threshold: 0.1 });
+
+    // Observe sections
+    Object.keys(sections).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+    });
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = document.querySelector(anchor.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     });
 });
