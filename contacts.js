@@ -177,6 +177,18 @@ function initContacts() {
                     <h5 class="mb-3">Contact Information</h5>
                     
                     <div class="mb-3">
+                        <label for="name" class="form-label">Full Name *</label>
+                        <input type="text" class="form-control" id="name" placeholder="John Doe" required>
+                        <div id="nameFeedback" class="invalid-feedback"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address *</label>
+                        <input type="email" class="form-control" id="email" placeholder="john@example.com" required>
+                        <div id="emailFeedback" class="invalid-feedback"></div>
+                    </div>
+                    
+                    <div class="mb-3">
                         <label for="phone" class="form-label">Phone Number *</label>
                         <input type="tel" class="form-control" id="phone" placeholder="+1 (555) 123-4567" required>
                         <div id="phoneFeedback" class="invalid-feedback"></div>
@@ -324,15 +336,4 @@ function initContacts() {
 // Export for use in main.js
 if (typeof window !== 'undefined') {
     window.initContacts = initContacts;
-}<label for="name" class="form-label">Full Name *</label>
-                        <input type="text" class="form-control" id="name" placeholder="John Doe" required>
-                        <div id="nameFeedback" class="invalid-feedback"></div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email Address *</label>
-                        <input type="email" class="form-control" id="email" placeholder="john@example.com" required>
-                        <div id="emailFeedback" class="invalid-feedback"></div>
-                    </div>
-                    
-                    <div class="mb-3">
+}
